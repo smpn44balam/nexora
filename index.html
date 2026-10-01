@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#071a38">
+<title>Ujian V2 (Percobaan)</title>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:#eef4fb;color:#172033;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+.hidden{display:none!important}
+.card{width:min(460px,92%);margin:28px auto;padding:22px;background:#fff;border-radius:16px;box-shadow:0 6px 24px rgba(7,26,56,.12)}
+h1{margin:0 0 4px;font-size:20px}.sub{margin:0 0 16px;font-size:13px;color:#52657d}
+label{display:block;margin:12px 0 4px;font-size:13px;font-weight:700}
+input,select{width:100%;padding:12px;font-size:16px;border:1px solid #c5d3e4;border-radius:10px;background:#fff}
+.btn{display:block;width:100%;min-height:46px;margin-top:14px;border:0;border-radius:10px;font-size:15px;font-weight:700;color:#fff;background:linear-gradient(135deg,#2563eb,#0ea5e9);cursor:pointer}
+.btn.sec{background:#e2ebf6;color:#172033}.btn.red{background:#dc2626}.btn.green{background:#16a34a}.btn:disabled{opacity:.5}
+.err{margin-top:12px;padding:10px;border-radius:10px;background:#fee2e2;color:#991b1b;font-size:13.5px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700}
+ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
+
+/* ===== UJIAN ===== */
+#examScreen{min-height:100dvh}
+.xbar{position:fixed;top:0;left:0;right:0;z-index:500;height:44px;padding:0 10px;padding-top:env(safe-area-inset-top,0px);box-sizing:content-box;display:flex;align-items:center;gap:8px;background:#071a38;color:#fff}
+.xname{flex:1;min-width:0;font-size:12px;color:#9db8d9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xtimer{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+.xtimer.warn{color:#fbbf24}.xtimer.danger{color:#f87171}
+.xviol{font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.12);color:#fde68a}
+.xnav{height:32px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.16);color:#fff;font-weight:700;font-size:13px}
+.stage{padding:calc(56px + env(safe-area-inset-top,0px)) 12px 90px;max-width:760px;margin:0 auto}
+/* PENGUNCIAN TEKS: tidak bisa disorot / tekan-tahan / menu salin */
+.lock,.lock *{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none}
+.lock img{-webkit-user-drag:none;pointer-events:none}
+.qbox{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 10px rgba(7,26,56,.08)}
+.qno{font-size:12px;font-weight:700;color:#2563eb;margin-bottom:6px}
+.qtext{font-size:17px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.qimg{display:block;max-width:100%;margin:12px auto 0;border-radius:8px}
+.opts{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;padding:12px;border:2px solid #d5e0ee;border-radius:12px;background:#fff;font-size:16px;line-height:1.45;color:#172033;cursor:pointer}
+.opt .L{flex:0 0 28px;height:28px;border-radius:50%;background:#e2ebf6;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.opt .T{flex:1;white-space:pre-wrap;word-break:break-word;padding-top:3px}
+.opt.sel{border-color:#2563eb;background:#eff6ff}.opt.sel .L{background:#2563eb;color:#fff}
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:400;display:flex;gap:8px;padding:10px 12px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:#fff;box-shadow:0 -2px 12px rgba(7,26,56,.12)}
+.bottom .btn{margin:0;flex:1}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:12px 0}
+.gn{padding:10px 0;border:2px solid #d5e0ee;border-radius:10px;background:#fff;font-weight:700;font-size:14px}
+.gn.done{background:#dbeafe;border-color:#93c5fd}.gn.cur{border-color:#2563eb;box-shadow:0 0 0 2px #bfdbfe}
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;background:rgba(3,16,36,.96);color:#fff}
+#penalty{z-index:2000}#confirmBox,#gridBox{z-index:1500}
+.mcard{width:min(420px,100%);padding:22px 18px;border-radius:16px;text-align:center;background:#0d3568;border:1px solid rgba(96,165,250,.3)}
+.mcard h2{margin:0 0 10px;font-size:20px}.mcard p{margin:0 0 12px;font-size:14px;line-height:1.55;color:#cfe0f5}
+.big{font-size:42px;font-weight:800;margin:6px 0}
+.note{margin-top:10px;font-size:12px;color:#fbbf24}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="card">
+    <span class="badge">VERSI PERCOBAAN</span>
+    <h1 id="schoolName">Ujian Online</h1>
+    <p class="sub">Isi data dengan benar sesuai nama di daftar peserta.</p>
+    <label for="inNama">Nama lengkap</label>
+    <input id="inNama" autocomplete="off" placeholder="Nama sesuai daftar">
+    <label for="inKelas">Kelas</label>
+    <input id="inKelas" autocomplete="off" placeholder="Contoh: VII-A">
+    <label for="inUjian">Pilih ujian</label>
+    <select id="inUjian"><option value="">Memuat daftar ujian...</option></select>
+    <ol class="rules">
+      <li>Ujian berjalan di layar penuh. Jangan keluar layar penuh, pindah aplikasi/tab, atau membuka panel pencarian.</li>
+      <li>Setiap pelanggaran dicatat dan layar dikunci beberapa saat.</li>
+      <li>Jawaban tersimpan otomatis. Jika terputus, login ulang dengan data yang sama untuk melanjutkan.</li>
+    </ol>
+    <div id="loginErr" class="err hidden"></div>
+    <button id="btnStart" class="btn">Mulai Ujian</button>
+  </div>
+</div>
+
+<!-- UJIAN -->
+<div id="examScreen" class="hidden">
+  <div class="xbar">
+    <div class="xname" id="xName"></div>
+    <div class="xtimer" id="xTimer">--:--</div>
+    <div class="xviol" id="xViol">⚠ 0</div>
+    <button class="xnav" id="btnGrid">Daftar</button>
+  </div>
+  <div class="stage lock" id="stage">
+    <div class="qbox">
+      <div class="qno" id="qNo"></div>
+      <div class="qtext" id="qText"></div>
+      <img class="qimg hidden" id="qImg" alt="">
+      <div class="opts" id="qOpts"></div>
+    </div>
+  </div>
+  <div class="bottom">
+    <button class="btn sec" id="btnPrev">‹ Sebelumnya</button>
+    <button class="btn" id="btnNext">Berikutnya ›</button>
+  </div>
+</div>
+
+<!-- DAFTAR SOAL -->
+<div id="gridBox" class="overlay hidden">
+  <div class="mcard">
+    <h2>Daftar Soal</h2>
+    <div class="grid" id="gridNums"></div>
+    <p id="gridInfo"></p>
+    <button class="btn sec" id="gridClose">Kembali ke soal</button>
+    <button class="btn green" id="gridFinish">Selesai &amp; Kirim</button>
+  </div>
+</div>
+
+<!-- KONFIRMASI KIRIM -->
+<div id="confirmBox" class="overlay hidden">
+  <div class="mcard">
+    <h2>Kirim jawaban?</h2>
+    <p id="confirmText"></p>
+    <div id="confirmErr" class="err hidden"></div>
+    <button class="btn sec" id="confirmNo">Kembali ke soal</button>
+    <button class="btn green" id="confirmYes">Ya, Kirim Sekarang</button>
+  </div>
+</div>
+
+<!-- PENALTI -->
+<div id="penalty" class="overlay hidden">
+  <div class="mcard">
+    <h2 id="penTitle">PELANGGARAN TERDETEKSI</h2>
+    <p id="penText"></p>
+    <div class="big" id="penCount">0</div>
+    <p>Waktu ujian tetap berjalan.</p>
+    <button class="btn" id="penBtn" disabled>Mohon tunggu...</button>
+    <div class="note" id="fsNote"></div>
+  </div>
+</div>
+
+<!-- SELESAI -->
+<div id="doneScreen" class="hidden">
+  <div class="card" style="text-align:center">
+    <h1>Jawaban terkirim ✔</h1>
+    <p class="sub" id="doneText"></p>
+    <div class="big" id="doneScore"></div>
+    <p class="sub">Silakan tutup halaman ini.</p>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = window.U2 || {};
+  function $(id) { return document.getElementById(id); }
+  function show(id) { $(id).classList.remove('hidden'); }
+  function hide(id) { $(id).classList.add('hidden'); }
+
+  var S = null;            // state sesi
+  var armed = false, paused = false, fsConfirmed = false;
+  var deadline = 0, timerH = null, saveH = null, dirty = false, saveTimer = null;
+  var focusTicks = 0, fsTimer = null;
+
+  $('schoolName').textContent = C.sekolah || 'Ujian Online';
+
+  /* ---------- API ---------- */
+  function api(body, ms) {
+    var ctl = new Promise(function (_, rej) { setTimeout(function () { rej(new Error('Koneksi lambat / terputus')); }, ms || 25000); });
+    var req = fetch(C.scriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), cache: 'no-store' })
+      .then(function (r) { return r.json(); });
+    return Promise.race([req, ctl]);
+  }
+
+  /* ---------- Login ---------- */
+  try {
+    var saved = JSON.parse(localStorage.getItem('u2_ident') || '{}');
+    if (saved.nama) $('inNama').value = saved.nama;
+    if (saved.kelas) $('inKelas').value = saved.kelas;
+  } catch (e) {}
+
+  function loadExams() {
+    if (!C.scriptUrl || C.scriptUrl.indexOf('GANTI') === 0) {
+      $('inUjian').innerHTML = '<option value="">scriptUrl belum diisi di config.js</option>'; return;
+    }
+    fetch(C.scriptUrl + '?action=list&_=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
+      var sel = $('inUjian'); sel.innerHTML = '';
+      if (!d.ujian || !d.ujian.length) { sel.innerHTML = '<option value="">Belum ada ujian aktif</option>'; return; }
+      sel.innerHTML = '<option value="">-- pilih ujian --</option>';
+      d.ujian.forEach(function (u) {
+        var o = document.createElement('option'); o.value = u.kode; o.textContent = u.nama + ' (' + u.durasi + ' menit)'; sel.appendChild(o);
+      });
+      if (saved && saved.kode) sel.value = saved.kode;
+    }).catch(function () { $('inUjian').innerHTML = '<option value="">Gagal memuat. Muat ulang halaman.</option>'; });
+  }
+  loadExams();
+
+  function loginError(m) { var e = $('loginErr'); e.textContent = m; e.classList.remove('hidden'); }
+
+  $('btnStart').addEventListener('click', function () {
+    var nama = $('inNama').value.trim(), kelas = $('inKelas').value.trim(), kode = $('inUjian').value;
+    $('loginErr').classList.add('hidden');
+    if (!nama || !kelas || !kode) { loginError('Nama, kelas, dan ujian wajib diisi.'); return; }
+    enterFullscreen(); // harus dipanggil langsung dari klik
+    var btn = $('btnStart'); btn.disabled = true; btn.textContent = 'Memuat soal...';
+    api({ action: 'start', nama: nama, kelas: kelas, kode: kode }).then(function (r) {
+      btn.disabled = false; btn.textContent = 'Mulai Ujian';
+      if (!r.ok) { exitFullscreen(); if (r.selesai) { showDone(r.msg, ''); return; } loginError(r.msg || 'Gagal memulai'); return; }
+      localStorage.setItem('u2_ident', JSON.stringify({ nama: nama, kelas: kelas, kode: kode }));
+      beginExam(r, nama, kelas, kode);
+    }).catch(function (e) {
+      btn.disabled = false; btn.textContent = 'Mulai Ujian'; exitFullscreen();
+      loginError((e && e.message) || 'Gagal terhubung');
+    });
+  });
+
+  /* ---------- Acak (seed dari sessionId, stabil saat resume) ---------- */
+  function seedFrom(str) { var h = 1779033703 ^ str.length; for (var i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); } return h >>> 0; }
+  function rng(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function shuffle(arr, rand) { var a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rand() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  function imgUrl(u) {
+    if (!u) return '';
+    var m = u.match(/drive\.google\.com\/file\/d\/([^\/?#]+)/) || u.match(/[?&]id=([^&]+)/);
+    if (/drive\.google\.com/.test(u) && m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1200';
+    return /^https:\/\//.test(u) ? u : '';
+  }
+
+  /* ---------- Mulai ujian ---------- */
+  function beginExam(r, nama, kelas, kode) {
+    var rand = rng(seedFrom(r.sessionId));
+    var qs = r.soal.map(function (q) {
+      var letters = Object.keys(q.opsi);
+      if (r.acak) letters = shuffle(letters, rand);
+      return { no: q.no, soal: q.soal, gambar: q.gambar, opts: letters.map(function (L) { return [L, q.opsi[L]]; }) };
+    });
+    if (r.acak) qs = shuffle(qs, rand);
+    var ans = r.jawaban || {};
+    try { var loc = JSON.parse(localStorage.getItem('u2_ans_' + r.sessionId) || '{}'); for (var k in loc) if (!ans[k]) ans[k] = loc[k]; } catch (e) {}
+    S = { id: r.sessionId, nama: nama, kelas: kelas, kode: kode, qs: qs, ans: ans, i: 0, viol: r.pelanggaran || 0 };
+    deadline = Date.now() + r.sisaDetik * 1000;
+    $('xName').textContent = nama + ' · ' + kelas;
+    updViol();
+    hide('loginScreen'); show('examScreen');
+    render();
+    timerH = setInterval(tick, 1000); tick();
+    saveH = setInterval(function () { if (dirty) saveNow(); }, 60000);
+    watchSecurity();
+    armed = true;
+    var penUntil = Number(localStorage.getItem('u2_pen_' + S.id) || 0);
+    if (penUntil > Date.now()) { paused = true; showPenalty('Anda me-refresh halaman saat penalti berjalan.', Math.ceil((penUntil - Date.now()) / 1000), true); }
+  }
+
+  /* ---------- Tampilan soal ---------- */
+  function render() {
+    var q = S.qs[S.i];
+    $('qNo').textContent = 'Soal ' + (S.i + 1) + ' dari ' + S.qs.length;
+    $('qText').textContent = q.soal;
+    var img = $('qImg'), u = imgUrl(q.gambar);
+    if (u) { img.src = u; img.classList.remove('hidden'); } else { img.removeAttribute('src'); img.classList.add('hidden'); }
+    var box = $('qOpts'); box.innerHTML = '';
+    q.opts.forEach(function (o, idx) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'opt' + (S.ans[q.no] === o[0] ? ' sel' : '');
+      var L = document.createElement('span'); L.className = 'L'; L.textContent = String.fromCharCode(65 + idx);
+      var T = document.createElement('span'); T.className = 'T'; T.textContent = o[1];
+      b.appendChild(L); b.appendChild(T);
+      b.addEventListener('click', function () { if (paused) return; S.ans[q.no] = o[0]; persist(); render(); });
+      box.appendChild(b);
+    });
+    $('btnPrev').disabled = S.i === 0;
+    $('btnNext').textContent = S.i === S.qs.length - 1 ? 'Selesai ✔' : 'Berikutnya ›';
+    window.scrollTo(0, 0);
+  }
+  $('btnPrev').addEventListener('click', function () { if (S.i > 0) { S.i--; render(); } });
+  $('btnNext').addEventListener('click', function () { if (S.i < S.qs.length - 1) { S.i++; render(); } else openConfirm(); });
+
+  function answeredCount() { var n = 0; S.qs.forEach(function (q) { if (S.ans[q.no]) n++; }); return n; }
+  function openGrid() {
+    var g = $('gridNums'); g.innerHTML = '';
+    S.qs.forEach(function (q, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = i + 1;
+      b.className = 'gn' + (S.ans[q.no] ? ' done' : '') + (i === S.i ? ' cur' : '');
+      b.addEventListener('click', function () { S.i = i; hide('gridBox'); render(); });
+      g.appendChild(b);
+    });
+    $('gridInfo').textContent = 'Terjawab ' + answeredCount() + ' dari ' + S.qs.length + ' soal.';
+    show('gridBox');
+  }
+  $('btnGrid').addEventListener('click', openGrid);
+  $('gridClose').addEventListener('click', function () { hide('gridBox'); });
+  $('gridFinish').addEventListener('click', function () { hide('gridBox'); openConfirm(); });
+
+  /* ---------- Simpan ---------- */
+  function persist() {
+    dirty = true;
+    try { localStorage.setItem('u2_ans_' + S.id, JSON.stringify(S.ans)); } catch (e) {}
+    clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 8000);
+  }
+  function saveNow() {
+    if (!S) return;
+    api({ action: 'save', sessionId: S.id, answers: S.ans, pelanggaran: S.viol }, 15000).then(function (r) { if (r && r.ok) dirty = false; }).catch(function () {});
+  }
+
+  /* ---------- Timer ---------- */
+  function tick() {
+    var left = Math.round((deadline - Date.now()) / 1000);
+    if (left < 0) left = 0;
+    var m = Math.floor(left / 60), s = left % 60;
+    var t = $('xTimer'); t.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    t.className = 'xtimer' + (left <= 60 ? ' danger' : left <= 300 ? ' warn' : '');
+    if (left <= 0) { clearInterval(timerH); doSubmit(true); }
+  }
+
+  /* ---------- Kirim ---------- */
+  function openConfirm() {
+    var un = S.qs.length - answeredCount();
+    $('confirmText').textContent = un > 0 ? ('Masih ada ' + un + ' soal belum dijawab. Setelah dikirim, jawaban tidak bisa diubah.') : 'Semua soal sudah dijawab. Setelah dikirim, jawaban tidak bisa diubah.';
+    $('confirmErr').classList.add('hidden');
+    show('confirmBox');
+  }
+  $('confirmNo').addEventListener('click', function () { hide('confirmBox'); });
+  $('confirmYes').addEventListener('click', function () { doSubmit(false); });
+
+  var submitting = false;
+  function doSubmit(auto) {
+    if (submitting) return; submitting = true;
+    var btn = $('confirmYes'); btn.disabled = true; btn.textContent = 'Mengirim...';
+    if (auto) { hide('gridBox'); hide('penalty'); show('confirmBox'); $('confirmText').textContent = 'Waktu habis. Mengirim jawaban Anda...'; }
+    api({ action: 'submit', sessionId: S.id, answers: S.ans, pelanggaran: S.viol }, 30000).then(function (r) {
+      submitting = false; btn.disabled = false; btn.textContent = 'Ya, Kirim Sekarang';
+      if (!r.ok) throw new Error(r.msg || 'Gagal mengirim');
+      armed = false; clearInterval(timerH); clearInterval(saveH);
+      try { localStorage.removeItem('u2_ans_' + S.id); localStorage.removeItem('u2_pen_' + S.id); } catch (e) {}
+      exitFullscreen();
+      showDone('Jawaban Anda sudah diterima.', r.tampilNilai && r.nilai !== null ? ('Nilai: ' + r.nilai) : '');
+    }).catch(function (e) {
+      submitting = false; btn.disabled = false; btn.textContent = 'Coba Kirim Lagi';
+      var er = $('confirmErr'); er.textContent = (e && e.message ? e.message : 'Gagal mengirim') + '. Periksa sinyal lalu tekan Coba Kirim Lagi. Jawaban Anda aman di perangkat ini.'; er.classList.remove('hidden');
+      show('confirmBox');
+      if (auto) { setTimeout(function () { if (!submitting) doSubmit(true); }, 5000); }
+    });
+  }
+  function showDone(msg, score) {
+    hide('loginScreen'); hide('examScreen'); hide('gridBox'); hide('confirmBox'); hide('penalty');
+    $('doneText').textContent = msg; $('doneScore').textContent = score; show('doneScreen');
+  }
+
+  /* ---------- Fullscreen ---------- */
+  function isFS() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function enterFullscreen() {
+    var d = document.documentElement;
+    try {
+      var p = d.requestFullscreen ? d.requestFullscreen() : (d.webkitRequestFullscreen ? d.webkitRequestFullscreen() : null);
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+    var tries = 0; (function chk() { setTimeout(function () { if (isFS()) { fsConfirmed = true; return; } if (++tries < 6) chk(); else if (!fsConfirmed) $('fsNote').textContent = 'Perangkat ini tidak mendukung layar penuh. Gunakan Chrome (Android) atau Safari (iPhone).'; }, 350); })();
+  }
+  function exitFullscreen() { try { if (isFS()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); } } catch (e) {} }
+
+  /* ---------- Pelanggaran ---------- */
+  function updViol() { $('xViol').textContent = '⚠ ' + S.viol; }
+  function logSrv(tipe, detail) { api({ action: 'log', sessionId: S.id, nama: S.nama, kelas: S.kelas, tipe: tipe, detail: detail }, 15000).catch(function () {}); }
+  function beep() { try { var A = window.AudioContext || window.webkitAudioContext; if (!A) return; var c = new A(), o = c.createOscillator(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.value = 660; g.gain.value = .25; o.connect(g); g.connect(c.destination); o.start(); setTimeout(function () { try { o.stop(); c.close(); } catch (e) {} }, 1500); } catch (e) {} }
+
+  function violation(type, detail) {
+    if (!armed || paused) return;
+    paused = true; S.viol++; updViol(); beep(); logSrv(type, detail);
+    api({ action: 'save', sessionId: S.id, answers: S.ans, pelanggaran: S.viol }, 15000).catch(function () {});
+    if (C.autoSubmitPelanggaran > 0 && S.viol >= C.autoSubmitPelanggaran) { doSubmit(true); return; }
+    var arr = C.penaltiDetik || [30, 60, 120];
+    var secs = arr[Math.min(S.viol - 1, arr.length - 1)];
+    try { localStorage.setItem('u2_pen_' + S.id, String(Date.now() + secs * 1000)); } catch (e) {}
+    showPenalty(detail, secs, false);
+  }
+  var penH = null;
+  function showPenalty(detail, secs, isRefresh) {
+    hide('gridBox'); hide('confirmBox');
+    $('penTitle').textContent = 'PELANGGARAN TERDETEKSI (' + S.viol + ')';
+    $('penText').textContent = detail;
+    var btn = $('penBtn'); btn.disabled = true; btn.textContent = 'Mohon tunggu...';
+    show('penalty');
+    var until = Date.now() + secs * 1000;
+    clearInterval(penH);
+    function t() {
+      var left = Math.ceil((until - Date.now()) / 1000);
+      if (left > 0) { $('penCount').textContent = left; return; }
+      clearInterval(penH); $('penCount').textContent = '0'; btn.disabled = false; btn.textContent = 'Saya Mengerti, Lanjutkan Ujian';
+    }
+    penH = setInterval(t, 500); t();
+  }
+  $('penBtn').addEventListener('click', function () {
+    hide('penalty'); try { localStorage.removeItem('u2_pen_' + S.id); } catch (e) {}
+    focusTicks = 0; paused = false; enterFullscreen();
+  });
+
+  /* ---------- Deteksi ---------- */
+  function watchSecurity() {
+    // Pindah tab / minimize / layar mati
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) violation('VISIBILITY_HIDDEN', 'Anda berpindah tab/aplikasi atau meminimalkan browser.');
+      else checkFS();
+    });
+    // Halaman kehilangan fokus (panel pencarian Google, Circle to Search, aplikasi lain di atas layar)
+    window.addEventListener('blur', function () {
+      if (!armed || paused) return;
+      setTimeout(function () { if (!document.hidden && !document.hasFocus()) violation('WINDOW_BLUR', 'Halaman ujian kehilangan fokus (aplikasi/panel lain muncul).'); }, 700);
+    });
+    setInterval(function () {
+      if (!armed || paused || document.hidden) { focusTicks = 0; return; }
+      if (document.hasFocus()) { focusTicks = 0; return; }
+      if (++focusTicks >= 2) { focusTicks = 0; violation('FOCUS_LOST', 'Halaman ujian kehilangan fokus (kemungkinan panel pencarian/overlay muncul).'); }
+    }, 1000);
+    // Keluar layar penuh (hanya jika perangkat terbukti pernah masuk layar penuh)
+    function onFS() { if (isFS()) { fsConfirmed = true; if (fsTimer) { clearTimeout(fsTimer); fsTimer = null; } } else checkFS(); }
+    document.addEventListener('fullscreenchange', onFS); document.addEventListener('webkitfullscreenchange', onFS);
+    setInterval(function () { if (armed && !paused) checkFS(); }, 2000);
+    // Salin / menu / sorot teks / pintasan
+    ['contextmenu', 'copy', 'cut', 'paste', 'selectstart', 'dragstart'].forEach(function (ev) {
+      document.addEventListener(ev, function (e) { if (S) e.preventDefault(); }, true);
+    });
+    document.addEventListener('selectionchange', function () { if (S && armed) { var s = window.getSelection && window.getSelection(); if (s && s.rangeCount && String(s) !== '') s.removeAllRanges(); } });
+    window.addEventListener('keydown', function (e) {
+      if (!armed) return;
+      var k = (e.key || '').toLowerCase();
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && 'ijc'.indexOf(k) > -1)) { e.preventDefault(); violation('DEVTOOLS', 'Mencoba membuka DevTools.'); }
+      else if (e.ctrlKey && 'usp'.indexOf(k) > -1) { e.preventDefault(); violation('SHORTCUT', 'Mencoba memakai pintasan terlarang (Ctrl+' + k.toUpperCase() + ').'); }
+    });
+    // Cegah refresh tak sengaja
+    window.addEventListener('beforeunload', function (e) { if (armed && !submitting) { e.preventDefault(); e.returnValue = ''; } });
+  }
+  function checkFS() {
+    if (!armed || paused || !fsConfirmed || isFS() || fsTimer) return;
+    fsTimer = setTimeout(function () { fsTimer = null; if (!isFS()) violation('FULLSCREEN_EXIT', 'Anda keluar dari mode layar penuh.'); }, 600);
+  }
+})();
+</script>
+</body>
+</html>

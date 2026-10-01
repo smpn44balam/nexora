@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daftar Nilai — Ujian V2</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef4fb;color:#172033;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 10px rgba(7,26,56,.08);margin-bottom:14px}
+h1{margin:0 0 4px;font-size:20px}.sub{margin:0 0 12px;font-size:13px;color:#52657d}
+input,select,button{padding:10px 12px;font-size:15px;border:1px solid #c5d3e4;border-radius:10px;background:#fff}
+button{cursor:pointer;font-weight:700;background:#2563eb;color:#fff;border:0}button.sec{background:#e2ebf6;color:#172033}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.stat{background:#f1f6fc;border-radius:12px;padding:10px;text-align:center}.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:#52657d}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{padding:8px 10px;border-bottom:1px solid #e3ebf5;text-align:left;white-space:nowrap}th{background:#f1f6fc;position:sticky;top:0}
+.bad{color:#b91c1c;font-weight:700}.run{color:#b45309}.err{margin-top:10px;padding:10px;border-radius:10px;background:#fee2e2;color:#991b1b;font-size:13.5px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="loginCard">
+    <h1>Daftar Nilai Ujian (V2 Percobaan)</h1>
+    <p class="sub">Khusus guru / pengawas. Masukkan password yang diatur di sheet <b>Pengaturan</b>.</p>
+    <div class="row"><input id="pw" type="password" placeholder="Password guru"><button id="btnLogin">Masuk</button></div>
+    <div id="err" class="err hidden"></div>
+  </div>
+  <div id="main" class="hidden">
+    <div class="card">
+      <div class="row">
+        <select id="fKode"></select>
+        <select id="fKelas"></select>
+        <button id="btnRefresh">Muat ulang</button>
+        <button class="sec" id="btnCsv">Unduh CSV</button>
+      </div>
+    </div>
+    <div class="card"><div class="stats" id="stats"></div></div>
+    <div class="card tw"><table><thead><tr>
+      <th>No</th><th>Nama</th><th>Kelas</th><th>Ujian</th><th>Status</th><th>Nilai</th><th>Benar</th><th>Salah</th><th>Kosong</th><th>Pelanggaran</th><th>Mulai</th><th>Selesai</th>
+    </tr></thead><tbody id="tb"></tbody></table></div>
+  </div>
+</div>
+<script src="config.js"></script>
+<script>
+(function(){
+var C=window.U2||{},$=function(i){return document.getElementById(i)},all=[],view=[];
+function post(b){return fetch(C.scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(b)}).then(function(r){return r.json()})}
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
+function load(){
+  $('err').classList.add('hidden');
+  post({action:'results',password:$('pw').value}).then(function(r){
+    if(!r.ok){var e=$('err');e.textContent=r.msg||'Gagal';e.classList.remove('hidden');return}
+    all=r.data;$('loginCard').classList.add('hidden');$('main').classList.remove('hidden');fill();draw();
+  }).catch(function(){var e=$('err');e.textContent='Gagal terhubung ke server';e.classList.remove('hidden')});
+}
+function uniq(k){var m={};all.forEach(function(x){m[x[k]]=1});return Object.keys(m).sort()}
+function fill(){
+  var k=$('fKode').value,c=$('fKelas').value;
+  $('fKode').innerHTML='<option value="">Semua ujian</option>'+uniq('kode').map(function(x){return '<option>'+esc(x)+'</option>'}).join('');
+  $('fKelas').innerHTML='<option value="">Semua kelas</option>'+uniq('kelas').map(function(x){return '<option>'+esc(x)+'</option>'}).join('');
+  $('fKode').value=k;$('fKelas').value=c;
+}
+function draw(){
+  var k=$('fKode').value,c=$('fKelas').value;
+  view=all.filter(function(x){return (!k||x.kode===k)&&(!c||x.kelas===c)}).sort(function(a,b){return String(a.kelas).localeCompare(b.kelas)||String(a.nama).localeCompare(b.nama)});
+  var done=view.filter(function(x){return x.status==='SELESAI'}),sc=done.map(function(x){return Number(x.nilai)});
+  var avg=sc.length?(sc.reduce(function(a,b){return a+b},0)/sc.length):0;
+  $('stats').innerHTML=[['Peserta',view.length],['Selesai',done.length],['Berjalan',view.length-done.length],['Rata-rata',sc.length?avg.toFixed(1):'-'],['Tertinggi',sc.length?Math.max.apply(null,sc):'-'],['Terendah',sc.length?Math.min.apply(null,sc):'-']].map(function(s){return '<div class="stat"><b>'+s[1]+'</b><span>'+s[0]+'</span></div>'}).join('');
+  $('tb').innerHTML=view.map(function(x,i){
+    return '<tr><td>'+(i+1)+'</td><td>'+esc(x.nama)+'</td><td>'+esc(x.kelas)+'</td><td>'+esc(x.kode)+'</td><td class="'+(x.status==='SELESAI'?'':'run')+'">'+esc(x.status)+'</td><td><b>'+(x.status==='SELESAI'?esc(x.nilai):'-')+'</b></td><td>'+esc(x.benar)+'</td><td>'+esc(x.salah)+'</td><td>'+esc(x.kosong)+'</td><td class="'+(Number(x.pelanggaran)>0?'bad':'')+'">'+esc(x.pelanggaran)+'</td><td>'+esc(x.mulai)+'</td><td>'+esc(x.selesai)+'</td></tr>';
+  }).join('');
+}
+function csv(){
+  var h=['Nama','Kelas','Ujian','Status','Nilai','Benar','Salah','Kosong','Pelanggaran','Mulai','Selesai'];
+  var rows=[h].concat(view.map(function(x){return [x.nama,x.kelas,x.kode,x.status,x.nilai,x.benar,x.salah,x.kosong,x.pelanggaran,x.mulai,x.selesai]}));
+  var t=rows.map(function(r){return r.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'}).join(',')}).join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+t],{type:'text/csv'}));a.download='nilai-ujian.csv';a.click();
+}
+$('btnLogin').onclick=load;$('btnRefresh').onclick=load;$('btnCsv').onclick=csv;$('fKode').onchange=draw;$('fKelas').onchange=draw;
+$('pw').addEventListener('keydown',function(e){if(e.key==='Enter')load()});
+})();
+</script>
+</body>
+</html>
