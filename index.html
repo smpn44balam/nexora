@@ -53,6 +53,24 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
 .mcard h2{margin:0 0 10px;font-size:20px}.mcard p{margin:0 0 12px;font-size:14px;line-height:1.55;color:#cfe0f5}
 .big{font-size:42px;font-weight:800;margin:6px 0}
 .note{margin-top:10px;font-size:12px;color:#fbbf24}
+
+/* ===== TEMA: biru tua + emas ===== */
+body{background:linear-gradient(160deg,#0b2a5b 0,#1d4ed8 38%,#dbeafe 38.1%,#fff7dd 100%) fixed}
+#loginScreen .card{padding:0;overflow:hidden;border-radius:18px;box-shadow:0 10px 34px rgba(7,26,56,.28)}
+.hero{padding:20px 16px 16px;text-align:center;color:#fff;background:linear-gradient(135deg,#0b2a5b,#1d4ed8);border-bottom:5px solid #f5b301}
+.hero img{width:84px;height:84px;object-fit:contain;display:block;margin:0 auto 8px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
+.school{margin:0;font-size:clamp(12.5px,3.9vw,18px);font-weight:800;letter-spacing:.3px;white-space:nowrap}
+.hero .tag{margin:4px 0 0;font-size:12px;color:#fde68a;letter-spacing:1px;font-weight:700}
+.fbody{padding:6px 22px 22px}
+label{color:#0b2a5b}
+select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focus{outline:0;border-color:#1d4ed8;background:#fff}
+.btn{background:linear-gradient(135deg,#1d4ed8,#0b2a5b);box-shadow:0 3px 8px rgba(29,78,216,.3)}
+.btn.gold{background:linear-gradient(135deg,#f5b301,#f59e0b);color:#3b2a00;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 3px 8px rgba(245,158,11,.35)}
+.xbar{background:linear-gradient(90deg,#0b2a5b,#1d4ed8)}
+.qbox{border-top:4px solid #f5b301}.qno{color:#b45309}
+.opt.sel{border-color:#f59e0b;background:#fffbeb}.opt.sel .L{background:#f59e0b;color:#3b2a00}
+.gn.done{background:#fde68a;border-color:#f5b301}
+.big{color:#fde68a}#doneScreen .card{border-top:6px solid #f5b301}#doneScreen .big{color:#0b2a5b;font-size:38px}
 </style>
 </head>
 <body>
@@ -60,10 +78,10 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
 <!-- LOGIN -->
 <div id="loginScreen">
   <div class="card">
-    <img src="logo.png" alt="" onerror="this.style.display='none'" style="display:block;width:76px;height:76px;object-fit:contain;margin:0 auto 10px">
-    <span class="badge">VERSI PERCOBAAN</span>
-    <h1 id="schoolName">Ujian Online</h1>
-    <p class="sub">Isi data dengan benar sesuai nama di daftar peserta.</p>
+    <div class="hero"><img src="logo.png" alt="" onerror="this.style.display='none'">
+      <h1 class="school" id="schoolName">SMP NEGERI 44 BANDAR LAMPUNG</h1>
+      <p class="tag">UJIAN ONLINE · VERSI PERCOBAAN</p></div>
+    <div class="fbody">
     <label for="inTingkat">Tingkat</label>
     <select id="inTingkat"><option value="">Memuat...</option></select>
     <label for="inKelas">Kelas</label>
@@ -79,7 +97,9 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
       <select id="inJenis"><option value="NORMAL">Normal</option><option value="SUSULAN">Susulan</option><option value="REMEDIAL">Remedial</option></select></div>
     <div id="loginErr" class="err hidden"></div>
     <button id="btnStart" class="btn">Mulai Ujian</button>
-    <p class="sub" style="text-align:center;margin:12px 0 0;font-size:12px"><a href="#" id="lnkMode">Susulan / remedial</a> · <a href="nilai.html">Menu pengawas</a></p>
+    <p class="sub" style="text-align:center;margin:14px 0 0;font-size:13px"><a href="#" id="lnkMode">Susulan / remedial</a></p>
+    <a class="btn gold" href="nilai.html">🛡 Menu Pengawas</a>
+    </div>
   </div>
 </div>
 
@@ -363,13 +383,21 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
       armed = false; clearInterval(timerH); clearInterval(saveH);
       try { localStorage.removeItem('u2_ans_' + S.id); localStorage.removeItem('u2_pen_' + S.id); } catch (e) {}
       exitFullscreen();
-      showDone('Jawaban Anda sudah diterima.', r.tampilNilai && r.nilai !== null ? ('Nilai: ' + r.nilai) : '');
+      var bd = (r.tampilNilai && r.nilai !== null) ? band(r.nilai) : null;
+      showDone(bd ? bd.msg : 'Jawaban Anda sudah diterima.', bd ? bd.rng : '');
     }).catch(function (e) {
       submitting = false; btn.disabled = false; btn.textContent = 'Coba Kirim Lagi';
       var er = $('confirmErr'); er.textContent = (e && e.message ? e.message : 'Gagal mengirim') + '. Periksa sinyal lalu tekan Coba Kirim Lagi. Jawaban Anda aman di perangkat ini.'; er.classList.remove('hidden');
       show('confirmBox');
       if (auto) { setTimeout(function () { if (!submitting) doSubmit(true); }, 5000); }
     });
+  }
+  function band(n) {
+    n = Number(n) || 0; var c = Math.round(n / 10) * 10, lo = Math.max(0, Math.min(c - 10, 80)), hi = lo + 20, m;
+    if (hi <= 60) m = 'Tingkatkan niat belajarmu, kamu berhasil mendapat nilai di antara ' + lo + ' dan ' + hi + '. Tetap semangat, kamu pasti bisa lebih baik!';
+    else if (hi <= 80) m = 'Bagus! Nilaimu berada di antara ' + lo + ' dan ' + hi + '. Terus belajar agar hasilmu makin baik.';
+    else m = 'Luar biasa! Nilaimu berada di antara ' + lo + ' dan ' + hi + '. Pertahankan semangat belajarmu!';
+    return { rng: lo + ' – ' + hi, msg: 'Jawaban terkirim. ' + m };
   }
   function showDone(msg, score) {
     hide('loginScreen'); hide('examScreen'); hide('gridBox'); hide('confirmBox'); hide('penalty');
