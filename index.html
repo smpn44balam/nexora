@@ -33,6 +33,7 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
 .lock,.lock *{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none}
 .lock img{-webkit-user-drag:none;pointer-events:none}
 .qbox{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 10px rgba(7,26,56,.08)}
+.wacana{max-height:38vh;overflow-y:auto;margin-bottom:12px;padding:12px;border-left:4px solid #2563eb;border-radius:8px;background:#f1f6fc;font-size:15px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
 .qno{font-size:12px;font-weight:700;color:#2563eb;margin-bottom:6px}
 .qtext{font-size:17px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
 .qimg{display:block;max-width:100%;margin:12px auto 0;border-radius:8px}
@@ -46,7 +47,7 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
 .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:12px 0}
 .gn{padding:10px 0;border:2px solid #d5e0ee;border-radius:10px;background:#fff;font-weight:700;font-size:14px}
 .gn.done{background:#dbeafe;border-color:#93c5fd}.gn.cur{border-color:#2563eb;box-shadow:0 0 0 2px #bfdbfe}
-.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;background:rgba(3,16,36,.96);color:#fff}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;background:rgba(3,16,36,.96);color:#fff}
 #penalty{z-index:2000}#confirmBox,#gridBox{z-index:1500}
 .mcard{width:min(420px,100%);padding:22px 18px;border-radius:16px;text-align:center;background:#0d3568;border:1px solid rgba(96,165,250,.3)}
 .mcard h2{margin:0 0 10px;font-size:20px}.mcard p{margin:0 0 12px;font-size:14px;line-height:1.55;color:#cfe0f5}
@@ -59,22 +60,26 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
 <!-- LOGIN -->
 <div id="loginScreen">
   <div class="card">
+    <img src="logo.png" alt="" onerror="this.style.display='none'" style="display:block;width:76px;height:76px;object-fit:contain;margin:0 auto 10px">
     <span class="badge">VERSI PERCOBAAN</span>
     <h1 id="schoolName">Ujian Online</h1>
     <p class="sub">Isi data dengan benar sesuai nama di daftar peserta.</p>
-    <label for="inNama">Nama lengkap</label>
-    <input id="inNama" autocomplete="off" placeholder="Nama sesuai daftar">
+    <label for="inTingkat">Tingkat</label>
+    <select id="inTingkat"><option value="">Memuat...</option></select>
     <label for="inKelas">Kelas</label>
-    <input id="inKelas" autocomplete="off" placeholder="Contoh: VII-A">
-    <label for="inUjian">Pilih ujian</label>
+    <select id="inKelas"><option value="">-- pilih kelas --</option></select>
+    <label for="inNama">Nama</label>
+    <select id="inNama"><option value="">-- pilih nama --</option></select>
+    <label for="inUjian">Mata pelajaran</label>
     <select id="inUjian"><option value="">Memuat daftar ujian...</option></select>
-    <ol class="rules">
-      <li>Ujian berjalan di layar penuh. Jangan keluar layar penuh, pindah aplikasi/tab, atau membuka panel pencarian.</li>
-      <li>Setiap pelanggaran dicatat dan layar dikunci beberapa saat.</li>
-      <li>Jawaban tersimpan otomatis. Jika terputus, login ulang dengan data yang sama untuk melanjutkan.</li>
-    </ol>
+    <div class="sub" id="exInfo" style="margin:6px 0 0"></div>
+    <label for="inToken" id="lblTok">Token ujian</label>
+    <input id="inToken" autocomplete="off" autocapitalize="characters" placeholder="Token dari pengawas">
+    <div id="modeBox" class="hidden"><label for="inJenis">Jenis ujian</label>
+      <select id="inJenis"><option value="NORMAL">Normal</option><option value="SUSULAN">Susulan</option><option value="REMEDIAL">Remedial</option></select></div>
     <div id="loginErr" class="err hidden"></div>
     <button id="btnStart" class="btn">Mulai Ujian</button>
+    <p class="sub" style="text-align:center;margin:12px 0 0;font-size:12px"><a href="#" id="lnkMode">Susulan / remedial</a> · <a href="nilai.html">Menu pengawas</a></p>
   </div>
 </div>
 
@@ -88,6 +93,7 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
   </div>
   <div class="stage lock" id="stage">
     <div class="qbox">
+      <div class="wacana hidden" id="qWac"></div>
       <div class="qno" id="qNo"></div>
       <div class="qtext" id="qText"></div>
       <img class="qimg hidden" id="qImg" alt="">
@@ -171,38 +177,61 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
   /* ---------- Login ---------- */
   try {
     var saved = JSON.parse(localStorage.getItem('u2_ident') || '{}');
-    if (saved.nama) $('inNama').value = saved.nama;
-    if (saved.kelas) $('inKelas').value = saved.kelas;
+    
+    
   } catch (e) {}
 
-  function loadExams() {
-    if (!C.scriptUrl || C.scriptUrl.indexOf('GANTI') === 0) {
-      $('inUjian').innerHTML = '<option value="">scriptUrl belum diisi di config.js</option>'; return;
-    }
-    fetch(C.scriptUrl + '?action=list&_=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (d) {
-      var sel = $('inUjian'); sel.innerHTML = '';
-      if (!d.ujian || !d.ujian.length) { sel.innerHTML = '<option value="">Belum ada ujian aktif</option>'; return; }
-      sel.innerHTML = '<option value="">-- pilih ujian --</option>';
-      d.ujian.forEach(function (u) {
-        var o = document.createElement('option'); o.value = u.kode; o.textContent = u.nama + ' (' + u.durasi + ' menit)'; sel.appendChild(o);
-      });
-      if (saved && saved.kode) sel.value = saved.kode;
-    }).catch(function () { $('inUjian').innerHTML = '<option value="">Gagal memuat. Muat ulang halaman.</option>'; });
+  var ROS = {}, EXS = {};
+  function opt(id, arr, ph) {
+    var el = $(id); el.innerHTML = ''; var o = document.createElement('option'); o.value = ''; o.textContent = ph; el.appendChild(o);
+    arr.forEach(function (x) { var p = document.createElement('option'); p.value = x[0]; p.textContent = x[1]; el.appendChild(p); });
   }
-  loadExams();
+  function getJ(q) { return fetch(C.scriptUrl + '?action=' + q + '&_=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }); }
+  function loadRoster() {
+    getJ('roster').then(function (d) {
+      ROS = d.kelas || {}; var t = {};
+      Object.keys(ROS).forEach(function (k) { t[k.charAt(0)] = 1; });
+      opt('inTingkat', Object.keys(t).sort().map(function (x) { return [x, 'Kelas ' + x]; }), '-- pilih tingkat --');
+    }).catch(function () { $('inTingkat').innerHTML = '<option value="">Gagal memuat. Muat ulang halaman.</option>'; });
+  }
+  $('inTingkat').addEventListener('change', function () {
+    var t = this.value; opt('inKelas', Object.keys(ROS).filter(function (k) { return k.charAt(0) === t; }).sort().map(function (k) { return [k, k]; }), '-- pilih kelas --'); opt('inNama', [], '-- pilih nama --');
+  });
+  $('inKelas').addEventListener('change', function () {
+    opt('inNama', (ROS[this.value] || []).slice().sort().map(function (n) { return [n, n]; }), '-- pilih nama --');
+  });
+  function showInfo() {
+    var u = EXS[$('inUjian').value], i = $('exInfo'); if (!u) { i.textContent = ''; return; }
+    i.textContent = u.durasi + ' menit' + (u.jam ? ' · Jam ' + u.jam : '') + (u.terbuka ? '' : ' · TOKEN BELUM DIBUKA / SUDAH DITUTUP');
+    $('lblTok').textContent = $('inJenis').value === 'NORMAL' ? 'Token ujian' : 'Kode pengawas';
+    $('inToken').parentNode.classList.toggle('hidden', false);
+  }
+  $('inUjian').addEventListener('change', showInfo); $('inJenis').addEventListener('change', showInfo);
+  $('lnkMode').addEventListener('click', function (e) { e.preventDefault(); $('modeBox').classList.toggle('hidden'); if ($('modeBox').classList.contains('hidden')) $('inJenis').value = 'NORMAL'; showInfo(); });
+  function loadExams() {
+    if (!C.scriptUrl || C.scriptUrl.indexOf('GANTI') === 0) { $('inUjian').innerHTML = '<option value="">scriptUrl belum diisi di config.js</option>'; return; }
+    getJ('list').then(function (d) {
+      var cur = $('inUjian').value; EXS = {};
+      if (!d.ujian || !d.ujian.length) { opt('inUjian', [], 'Belum ada ujian aktif'); return; }
+      d.ujian.forEach(function (u) { EXS[u.kode] = u; });
+      opt('inUjian', d.ujian.map(function (u) { return [u.kode, u.nama + (u.terbuka ? '' : ' (tutup)')]; }), '-- pilih mapel --');
+      if (cur) $('inUjian').value = cur; showInfo();
+    }).catch(function () { if (!Object.keys(EXS).length) $('inUjian').innerHTML = '<option value="">Gagal memuat. Muat ulang halaman.</option>'; });
+  }
+  loadRoster(); loadExams(); setInterval(function () { if (!S) loadExams(); }, 30000);
 
   function loginError(m) { var e = $('loginErr'); e.textContent = m; e.classList.remove('hidden'); }
 
   $('btnStart').addEventListener('click', function () {
-    var nama = $('inNama').value.trim(), kelas = $('inKelas').value.trim(), kode = $('inUjian').value;
+    var nama = $('inNama').value.trim(), kelas = $('inKelas').value.trim(), kode = $('inUjian').value, token = $('inToken').value.trim(), jenis = $('inJenis').value;
     $('loginErr').classList.add('hidden');
-    if (!nama || !kelas || !kode) { loginError('Nama, kelas, dan ujian wajib diisi.'); return; }
+    if (!nama || !kelas || !kode || !token) { loginError('Kelas, nama, mapel, dan token wajib diisi.'); return; }
     enterFullscreen(); // harus dipanggil langsung dari klik
     var btn = $('btnStart'); btn.disabled = true; btn.textContent = 'Memuat soal...';
-    api({ action: 'start', nama: nama, kelas: kelas, kode: kode }).then(function (r) {
+    api({ action: 'start', nama: nama, kelas: kelas, kode: kode, token: token, jenis: jenis }).then(function (r) {
       btn.disabled = false; btn.textContent = 'Mulai Ujian';
       if (!r.ok) { exitFullscreen(); if (r.selesai) { showDone(r.msg, ''); return; } loginError(r.msg || 'Gagal memulai'); return; }
-      localStorage.setItem('u2_ident', JSON.stringify({ nama: nama, kelas: kelas, kode: kode }));
+      
       beginExam(r, nama, kelas, kode);
     }).catch(function (e) {
       btn.disabled = false; btn.textContent = 'Mulai Ujian'; exitFullscreen();
@@ -228,9 +257,9 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
     var qs = r.soal.map(function (q) {
       var letters = Object.keys(q.opsi);
       if (r.acak) letters = shuffle(letters, rand);
-      return { no: q.no, soal: q.soal, gambar: q.gambar, opts: letters.map(function (L) { return [L, q.opsi[L]]; }) };
+      return { no: q.no, soal: q.soal, wacana: q.wacana || '', gambar: q.gambar, opts: letters.map(function (L) { return [L, q.opsi[L]]; }) };
     });
-    if (r.acak) qs = shuffle(qs, rand);
+    if (r.acak && !qs.some(function (x) { return x.wacana; })) qs = shuffle(qs, rand);
     var ans = r.jawaban || {};
     try { var loc = JSON.parse(localStorage.getItem('u2_ans_' + r.sessionId) || '{}'); for (var k in loc) if (!ans[k]) ans[k] = loc[k]; } catch (e) {}
     S = { id: r.sessionId, nama: nama, kelas: kelas, kode: kode, qs: qs, ans: ans, i: 0, viol: r.pelanggaran || 0 };
@@ -252,6 +281,7 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
     var q = S.qs[S.i];
     $('qNo').textContent = 'Soal ' + (S.i + 1) + ' dari ' + S.qs.length;
     $('qText').textContent = q.soal;
+    var wc = $('qWac'); if (q.wacana) { wc.textContent = q.wacana; wc.classList.remove('hidden'); wc.scrollTop = 0; } else { wc.classList.add('hidden'); }
     var img = $('qImg'), u = imgUrl(q.gambar);
     if (u) { img.src = u; img.classList.remove('hidden'); } else { img.removeAttribute('src'); img.classList.add('hidden'); }
     var box = $('qOpts'); box.innerHTML = '';
@@ -308,20 +338,25 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
   }
 
   /* ---------- Kirim ---------- */
+  function firstEmpty() { for (var i = 0; i < S.qs.length; i++) if (!S.ans[S.qs[i].no]) return i; return -1; }
   function openConfirm() {
-    var un = S.qs.length - answeredCount();
-    $('confirmText').textContent = un > 0 ? ('Masih ada ' + un + ' soal belum dijawab. Setelah dikirim, jawaban tidak bisa diubah.') : 'Semua soal sudah dijawab. Setelah dikirim, jawaban tidak bisa diubah.';
+    var tot = S.qs.length, ans = answeredCount(), un = tot - ans, empty = [];
+    S.qs.forEach(function (q, i) { if (!S.ans[q.no]) empty.push(i + 1); });
+    $('confirmText').textContent = 'Jumlah soal: ' + tot + '. Terjawab: ' + ans + '. Belum dijawab: ' + un + '.' + (un > 0 ? ' Semua soal wajib dijawab. Soal kosong: ' + empty.join(', ') + '.' : ' Setelah dikirim, jawaban tidak bisa diubah.');
+    $('confirmYes').classList.toggle('hidden', un > 0);
+    $('confirmNo').classList.remove('hidden');
+    $('confirmNo').textContent = un > 0 ? 'Ke soal yang kosong' : 'Kembali ke soal';
     $('confirmErr').classList.add('hidden');
     show('confirmBox');
   }
-  $('confirmNo').addEventListener('click', function () { hide('confirmBox'); });
+  $('confirmNo').addEventListener('click', function () { hide('confirmBox'); var f = firstEmpty(); if (f > -1) { S.i = f; render(); } });
   $('confirmYes').addEventListener('click', function () { doSubmit(false); });
 
   var submitting = false;
   function doSubmit(auto) {
     if (submitting) return; submitting = true;
     var btn = $('confirmYes'); btn.disabled = true; btn.textContent = 'Mengirim...';
-    if (auto) { hide('gridBox'); hide('penalty'); show('confirmBox'); $('confirmText').textContent = 'Waktu habis. Mengirim jawaban Anda...'; }
+    if (auto) { hide('gridBox'); hide('penalty'); $('confirmNo').classList.add('hidden'); $('confirmYes').classList.remove('hidden'); show('confirmBox'); $('confirmText').textContent = 'Waktu habis. Mengirim jawaban Anda...'; }
     api({ action: 'submit', sessionId: S.id, answers: S.ans, pelanggaran: S.viol }, 30000).then(function (r) {
       submitting = false; btn.disabled = false; btn.textContent = 'Ya, Kirim Sekarang';
       if (!r.ok) throw new Error(r.msg || 'Gagal mengirim');

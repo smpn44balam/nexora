@@ -33,13 +33,14 @@ th,td{padding:8px 10px;border-bottom:1px solid #e3ebf5;text-align:left;white-spa
       <div class="row">
         <select id="fKode"></select>
         <select id="fKelas"></select>
+        <select id="fJenis"><option value="">Semua jenis</option><option>NORMAL</option><option>SUSULAN</option><option>REMEDIAL</option></select>
         <button id="btnRefresh">Muat ulang</button>
         <button class="sec" id="btnCsv">Unduh CSV</button>
       </div>
     </div>
     <div class="card"><div class="stats" id="stats"></div></div>
     <div class="card tw"><table><thead><tr>
-      <th>No</th><th>Nama</th><th>Kelas</th><th>Ujian</th><th>Status</th><th>Nilai</th><th>Benar</th><th>Salah</th><th>Kosong</th><th>Pelanggaran</th><th>Mulai</th><th>Selesai</th>
+      <th>No</th><th>Nama</th><th>Kelas</th><th>Ujian</th><th>Jenis</th><th>Status</th><th>Nilai</th><th>Benar</th><th>Salah</th><th>Kosong</th><th>Pelanggaran</th><th>Mulai</th><th>Selesai</th>
     </tr></thead><tbody id="tb"></tbody></table></div>
   </div>
 </div>
@@ -64,22 +65,22 @@ function fill(){
   $('fKode').value=k;$('fKelas').value=c;
 }
 function draw(){
-  var k=$('fKode').value,c=$('fKelas').value;
-  view=all.filter(function(x){return (!k||x.kode===k)&&(!c||x.kelas===c)}).sort(function(a,b){return String(a.kelas).localeCompare(b.kelas)||String(a.nama).localeCompare(b.nama)});
+  var k=$('fKode').value,c=$('fKelas').value,j=$('fJenis').value;
+  view=all.filter(function(x){return (!k||x.kode===k)&&(!c||x.kelas===c)&&(!j||x.jenis===j)}).sort(function(a,b){return String(a.kelas).localeCompare(b.kelas)||String(a.nama).localeCompare(b.nama)});
   var done=view.filter(function(x){return x.status==='SELESAI'}),sc=done.map(function(x){return Number(x.nilai)});
   var avg=sc.length?(sc.reduce(function(a,b){return a+b},0)/sc.length):0;
   $('stats').innerHTML=[['Peserta',view.length],['Selesai',done.length],['Berjalan',view.length-done.length],['Rata-rata',sc.length?avg.toFixed(1):'-'],['Tertinggi',sc.length?Math.max.apply(null,sc):'-'],['Terendah',sc.length?Math.min.apply(null,sc):'-']].map(function(s){return '<div class="stat"><b>'+s[1]+'</b><span>'+s[0]+'</span></div>'}).join('');
   $('tb').innerHTML=view.map(function(x,i){
-    return '<tr><td>'+(i+1)+'</td><td>'+esc(x.nama)+'</td><td>'+esc(x.kelas)+'</td><td>'+esc(x.kode)+'</td><td class="'+(x.status==='SELESAI'?'':'run')+'">'+esc(x.status)+'</td><td><b>'+(x.status==='SELESAI'?esc(x.nilai):'-')+'</b></td><td>'+esc(x.benar)+'</td><td>'+esc(x.salah)+'</td><td>'+esc(x.kosong)+'</td><td class="'+(Number(x.pelanggaran)>0?'bad':'')+'">'+esc(x.pelanggaran)+'</td><td>'+esc(x.mulai)+'</td><td>'+esc(x.selesai)+'</td></tr>';
+    return '<tr><td>'+(i+1)+'</td><td>'+esc(x.nama)+'</td><td>'+esc(x.kelas)+'</td><td>'+esc(x.kode)+'</td><td>'+esc(x.jenis)+'</td><td class="'+(x.status==='SELESAI'?'':'run')+'">'+esc(x.status)+'</td><td><b>'+(x.status==='SELESAI'?esc(x.nilai):'-')+'</b></td><td>'+esc(x.benar)+'</td><td>'+esc(x.salah)+'</td><td>'+esc(x.kosong)+'</td><td class="'+(Number(x.pelanggaran)>0?'bad':'')+'">'+esc(x.pelanggaran)+'</td><td>'+esc(x.mulai)+'</td><td>'+esc(x.selesai)+'</td></tr>';
   }).join('');
 }
 function csv(){
-  var h=['Nama','Kelas','Ujian','Status','Nilai','Benar','Salah','Kosong','Pelanggaran','Mulai','Selesai'];
-  var rows=[h].concat(view.map(function(x){return [x.nama,x.kelas,x.kode,x.status,x.nilai,x.benar,x.salah,x.kosong,x.pelanggaran,x.mulai,x.selesai]}));
+  var h=['Nama','Kelas','Ujian','Jenis','Status','Nilai','Benar','Salah','Kosong','Pelanggaran','Mulai','Selesai'];
+  var rows=[h].concat(view.map(function(x){return [x.nama,x.kelas,x.kode,x.jenis,x.status,x.nilai,x.benar,x.salah,x.kosong,x.pelanggaran,x.mulai,x.selesai]}));
   var t=rows.map(function(r){return r.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'}).join(',')}).join('\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+t],{type:'text/csv'}));a.download='nilai-ujian.csv';a.click();
 }
-$('btnLogin').onclick=load;$('btnRefresh').onclick=load;$('btnCsv').onclick=csv;$('fKode').onchange=draw;$('fKelas').onchange=draw;
+$('btnLogin').onclick=load;$('btnRefresh').onclick=load;$('btnCsv').onclick=csv;$('fKode').onchange=draw;$('fKelas').onchange=draw;$('fJenis').onchange=draw;
 $('pw').addEventListener('keydown',function(e){if(e.key==='Enter')load()});
 })();
 </script>
