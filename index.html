@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="id">
 <head>
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#071a38">
@@ -54,6 +56,9 @@ ol.rules{padding-left:20px;font-size:13.5px;line-height:1.6;color:#334155}
 .big{font-size:42px;font-weight:800;margin:6px 0}
 .note{margin-top:10px;font-size:12px;color:#fbbf24}
 
+.wm{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;pointer-events:none;background:url(logo.png) center 52%/min(92vw,600px) no-repeat;opacity:.3}
+#loginScreen .card{position:relative;z-index:1;background:rgba(255,255,255,.9)}.hero img{display:none}
+.qtext,.opt .T,.wacana{font-size:var(--fs,16px)!important}.qimg{cursor:zoom-in}.xbar .xnav{padding:6px 10px}
 /* ===== TEMA: biru tua + emas ===== */
 body{background:linear-gradient(160deg,#0b2a5b 0,#1d4ed8 38%,#dbeafe 38.1%,#fff7dd 100%) fixed}
 #loginScreen .card{padding:0;overflow:hidden;border-radius:18px;box-shadow:0 10px 34px rgba(7,26,56,.28)}
@@ -77,6 +82,7 @@ select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focu
 
 <!-- LOGIN -->
 <div id="loginScreen">
+<div class="wm"></div>
   <div class="card">
     <div class="hero"><img src="logo.png" alt="" onerror="this.style.display='none'">
       <h1 class="school" id="schoolName">SMP NEGERI 44 BANDAR LAMPUNG</h1>
@@ -96,6 +102,7 @@ select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focu
     <div id="modeBox" class="hidden"><label for="inJenis">Jenis ujian</label>
       <select id="inJenis"><option value="NORMAL">Normal</option><option value="SUSULAN">Susulan</option><option value="REMEDIAL">Remedial</option></select></div>
     <div id="loginErr" class="err hidden"></div>
+    <button id="btnResume" class="btn gold hidden" style="margin-bottom:10px"></button>
     <button id="btnStart" class="btn">Mulai Ujian</button>
     <p class="sub" style="text-align:center;margin:14px 0 0;font-size:13px"><a href="#" id="lnkMode">Susulan / remedial</a></p>
     <a class="btn gold" href="nilai.html">🛡 Menu Pengawas</a>
@@ -109,6 +116,8 @@ select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focu
     <div class="xname" id="xName"></div>
     <div class="xtimer" id="xTimer">--:--</div>
     <div class="xviol" id="xViol">⚠ 0</div>
+    <button class="xnav" id="btnFont" title="Perbesar huruf">A+</button>
+    <button class="xnav" id="btnRefresh" title="Muat ulang">⟳</button>
     <button class="xnav" id="btnGrid">Daftar</button>
   </div>
   <div class="stage lock" id="stage">
@@ -171,6 +180,10 @@ select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focu
 </div>
 
 <script src="config.js"></script>
+<div id="zoomBox" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:40;background:rgba(0,0,0,.93)">
+  <div style="position:absolute;top:0;left:0;right:0;z-index:2;display:flex;gap:8px;justify-content:center;padding:calc(8px + env(safe-area-inset-top,0px)) 8px 8px"><button class="xnav" id="zOut">−</button><button class="xnav" id="zIn">+</button><button class="xnav" id="zClose">Tutup ✕</button></div>
+  <div style="position:absolute;top:0;left:0;right:0;bottom:0;overflow:auto;-webkit-overflow-scrolling:touch;padding-top:64px;touch-action:pan-x pan-y pinch-zoom"><img id="zImg" alt="" style="display:block;width:100%;max-width:none"></div>
+</div>
 <script>
 (function () {
   'use strict';
@@ -207,8 +220,9 @@ select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focu
     arr.forEach(function (x) { var p = document.createElement('option'); p.value = x[0]; p.textContent = x[1]; el.appendChild(p); });
   }
   function getJ(q) { return fetch(C.scriptUrl + '?action=' + q + '&_=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.json(); }); }
-  function loadRoster() {
-    getJ('roster').then(function (d) {
+  function loadRoster(pre) {
+    if (pre && $('inTingkat').value) return;
+    (pre ? Promise.resolve(pre) : getJ('roster')).then(function (d) {
       ROS = d.kelas || {}; var t = {};
       Object.keys(ROS).forEach(function (k) { t[k.charAt(0)] = 1; });
       opt('inTingkat', Object.keys(t).sort().map(function (x) { return [x, 'Kelas ' + x]; }), '-- pilih tingkat --');
@@ -228,9 +242,9 @@ select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focu
   }
   $('inUjian').addEventListener('change', showInfo); $('inJenis').addEventListener('change', showInfo);
   $('lnkMode').addEventListener('click', function (e) { e.preventDefault(); $('modeBox').classList.toggle('hidden'); if ($('modeBox').classList.contains('hidden')) $('inJenis').value = 'NORMAL'; showInfo(); });
-  function loadExams() {
+  function loadExams(pre) {
     if (!C.scriptUrl || C.scriptUrl.indexOf('GANTI') === 0) { $('inUjian').innerHTML = '<option value="">scriptUrl belum diisi di config.js</option>'; return; }
-    getJ('list').then(function (d) {
+    (pre ? Promise.resolve(pre) : getJ('list')).then(function (d) {
       var cur = $('inUjian').value; EXS = {};
       if (!d.ujian || !d.ujian.length) { opt('inUjian', [], 'Belum ada ujian aktif'); return; }
       d.ujian.forEach(function (u) { EXS[u.kode] = u; });
@@ -238,26 +252,43 @@ select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focu
       if (cur) $('inUjian').value = cur; showInfo();
     }).catch(function () { if (!Object.keys(EXS).length) $('inUjian').innerHTML = '<option value="">Gagal memuat. Muat ulang halaman.</option>'; });
   }
-  loadRoster(); loadExams(); setInterval(function () { if (!S) loadExams(); }, 30000);
+  function boot() {
+    try { var c = JSON.parse(localStorage.getItem('u2_boot') || 'null'); if (c && c.kelas) { loadRoster(c); loadExams(c); } } catch (e) {}
+    getJ('boot').then(function (d) { loadRoster(d); loadExams(d); try { localStorage.setItem('u2_boot', JSON.stringify(d)); } catch (e) {} })
+      .catch(function () { if (!Object.keys(ROS).length) { loadRoster(); loadExams(); } });
+  }
+  boot(); setInterval(function () { if (!S) loadExams(); }, 30000);
 
   function loginError(m) { var e = $('loginErr'); e.textContent = m; e.classList.remove('hidden'); }
 
-  $('btnStart').addEventListener('click', function () {
-    var nama = $('inNama').value.trim(), kelas = $('inKelas').value.trim(), kode = $('inUjian').value, token = $('inToken').value.trim(), jenis = $('inJenis').value;
+  $('btnStart').addEventListener('click', function () { doStart({ nama: $('inNama').value.trim(), kelas: $('inKelas').value.trim(), kode: $('inUjian').value, token: $('inToken').value.trim(), jenis: $('inJenis').value }); });
+  var RUN = null; try { RUN = JSON.parse(localStorage.getItem('u2_run') || 'null'); } catch (e) {}
+  if (RUN && RUN.nama) { $('btnResume').textContent = '▶ Lanjutkan ujian: ' + RUN.nama; $('btnResume').classList.remove('hidden'); $('btnResume').addEventListener('click', function () { doStart(RUN); }); }
+  function doStart(d) {
+    var nama = d.nama, kelas = d.kelas, kode = d.kode, token = d.token, jenis = d.jenis;
     $('loginErr').classList.add('hidden');
     if (!nama || !kelas || !kode || !token) { loginError('Kelas, nama, mapel, dan token wajib diisi.'); return; }
     enterFullscreen(); // harus dipanggil langsung dari klik
+    try { localStorage.setItem('u2_run', JSON.stringify(d)); } catch (e) {}
     var btn = $('btnStart'); btn.disabled = true; btn.textContent = 'Memuat soal...';
     api({ action: 'start', nama: nama, kelas: kelas, kode: kode, token: token, jenis: jenis }).then(function (r) {
       btn.disabled = false; btn.textContent = 'Mulai Ujian';
-      if (!r.ok) { exitFullscreen(); if (r.selesai) { showDone(r.msg, ''); return; } loginError(r.msg || 'Gagal memulai'); return; }
+      if (!r.ok) { exitFullscreen(); if (r.selesai) { try { localStorage.removeItem('u2_run'); } catch (e) {} showDone(r.msg, ''); return; } loginError(r.msg || 'Gagal memulai'); return; }
       
       beginExam(r, nama, kelas, kode);
     }).catch(function (e) {
       btn.disabled = false; btn.textContent = 'Mulai Ujian'; exitFullscreen();
       loginError((e && e.message) || 'Gagal terhubung');
     });
-  });
+  }
+
+  $('btnRefresh').addEventListener('click', function () { armed = false; location.reload(); });
+  var FS = [16, 19, 22], fi = 0;
+  $('btnFont').addEventListener('click', function () { fi = (fi + 1) % 3; document.documentElement.style.setProperty('--fs', FS[fi] + 'px'); });
+  var zl = 1; function zset(v) { zl = Math.max(1, Math.min(4, v)); $('zImg').style.width = (zl * 100) + '%'; }
+  $('qImg').addEventListener('click', function () { $('zImg').src = this.src; zset(1); $('zoomBox').classList.remove('hidden'); });
+  $('zIn').addEventListener('click', function () { zset(zl + 0.5); }); $('zOut').addEventListener('click', function () { zset(zl - 0.5); });
+  $('zClose').addEventListener('click', function () { $('zoomBox').classList.add('hidden'); });
 
   /* ---------- Acak (seed dari sessionId, stabil saat resume) ---------- */
   function seedFrom(str) { var h = 1779033703 ^ str.length; for (var i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); } return h >>> 0; }
@@ -381,9 +412,9 @@ select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focu
       submitting = false; btn.disabled = false; btn.textContent = 'Ya, Kirim Sekarang';
       if (!r.ok) throw new Error(r.msg || 'Gagal mengirim');
       armed = false; clearInterval(timerH); clearInterval(saveH);
-      try { localStorage.removeItem('u2_ans_' + S.id); localStorage.removeItem('u2_pen_' + S.id); } catch (e) {}
+      try { localStorage.removeItem('u2_ans_' + S.id); localStorage.removeItem('u2_run'); localStorage.removeItem('u2_pen_' + S.id); } catch (e) {}
       exitFullscreen();
-      var bd = (r.tampilNilai && r.nilai !== null) ? band(r.nilai) : null;
+      var bd = (r.tampilNilai && r.nilai !== null) ? band(r.nilai, r.maks) : null;
       showDone(bd ? bd.msg : 'Jawaban Anda sudah diterima.', bd ? bd.rng : '');
     }).catch(function (e) {
       submitting = false; btn.disabled = false; btn.textContent = 'Coba Kirim Lagi';
@@ -392,10 +423,10 @@ select,input{border:2px solid #bfd3ee;background:#f8fbff}select:focus,input:focu
       if (auto) { setTimeout(function () { if (!submitting) doSubmit(true); }, 5000); }
     });
   }
-  function band(n) {
-    n = Number(n) || 0; var c = Math.round(n / 10) * 10, lo = Math.max(0, Math.min(c - 10, 80)), hi = lo + 20, m;
-    if (hi <= 60) m = 'Tingkatkan niat belajarmu, kamu berhasil mendapat nilai di antara ' + lo + ' dan ' + hi + '. Tetap semangat, kamu pasti bisa lebih baik!';
-    else if (hi <= 80) m = 'Bagus! Nilaimu berada di antara ' + lo + ' dan ' + hi + '. Terus belajar agar hasilmu makin baik.';
+  function band(n, mx) {
+    n = Number(n) || 0; mx = Number(mx) || 100; var c = Math.round(n / 10) * 10, lo = Math.max(0, Math.min(c - 10, Math.max(0, mx - 20))), hi = Math.min(lo + 20, mx), m;
+    if (hi / mx <= 0.6) m = 'Tingkatkan niat belajarmu, kamu berhasil mendapat nilai di antara ' + lo + ' dan ' + hi + '. Tetap semangat, kamu pasti bisa lebih baik!';
+    else if (hi / mx <= 0.8) m = 'Bagus! Nilaimu berada di antara ' + lo + ' dan ' + hi + '. Terus belajar agar hasilmu makin baik.';
     else m = 'Luar biasa! Nilaimu berada di antara ' + lo + ' dan ' + hi + '. Pertahankan semangat belajarmu!';
     return { rng: lo + ' – ' + hi, msg: 'Jawaban terkirim. ' + m };
   }
